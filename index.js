@@ -7,7 +7,12 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 //middlewares
-app.use(cors());
+app.use(
+    cors({
+        origin: ['http://localhost:5173', 'https://poised-kitten.surge.sh'],
+        credentials: true,
+    }),
+)
 app.use(express.json());
 
 console.log(process.env.DB_PASS)
@@ -30,6 +35,7 @@ async function run() {
 
     const shopCollection = client.db('inventory').collection('shop');
     const userCollection = client.db('inventory').collection('users');
+    const productCollection = client.db('inventory').collection('products');
 
     app.post('/jwt', async (req, res) => {
         const user = req.body;
@@ -70,8 +76,22 @@ async function run() {
         let admin = false;
         if(user){
             admin = user?.role === 'admin';
+            admin = user?.role === 'admin';
         }
         res.send({admin});
+    })
+    app.get('/users/manager/:email', verifyToken, async(req, res) => {
+        const email = req.params.email;
+        if(email !== req.decoded.email){
+            return res.status(403).send({message: 'unauthorized access'})
+        }
+        const query = {email: email};
+        const user = await userCollection.findOne(query);
+        let manager = false;
+        if(user){
+            manager = user?.role2 === 'manager';
+        }
+        res.send({manager});
     })
 
     app.post('/users', async(req, res) => {
@@ -96,6 +116,17 @@ async function run() {
         const result = await userCollection.updateOne(filter, updatedDoc);
         res.send(result);
     })
+    app.patch('/users/manager/:id', async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id)};
+        const updatedDoc = {
+            $set: {
+                role2: 'manager'
+            }
+        }
+        const result = await userCollection.updateOne(filter, updatedDoc);
+        res.send(result);
+    })
 
     app.delete('/users/:id', async(req, res) => {
         const id = req.params.id;
@@ -110,6 +141,48 @@ async function run() {
         const result = await shopCollection.insertOne(shop);
         res.send(result);
     });
+
+    app.get('/shops', async (req, res) => {
+        try {
+            const result = await shopCollection.find().toArray();
+            res.send(result);
+        } catch (error) {
+            console.error("Error retrieving products:", error);
+            res.status(500).send("Internal Server Error");
+        }
+    });
+    app.post('/products', async(req, res) => {
+        const product = req.body;
+        console.log(product);
+        const result = await productCollection.insertOne(product);
+        res.send(result);
+    });
+    
+    app.get('/products', async (req, res) => {
+        try {
+            const result = await productCollection.find().toArray();
+            res.send(result);
+        } catch (error) {
+            console.error("Error retrieving products:", error);
+            res.status(500).send("Internal Server Error");
+        }
+    });
+
+    app.get('/products/:id', async(req, res) => {
+        const id = req.params.id;
+        const query = {_id: new ObjectId(id)}
+        const result = await productCollection.findOne(query);
+        res.send(result);
+    })
+
+
+    app.delete('/products/:id', async(req, res) => {
+        const id = req.params.id;
+        const query = {_id: new ObjectId(id)}
+        const result = await productCollection.deleteOne(query);
+        res.send(result);
+    })
+    
 
     app.get('/current', async (req, res) => {
         let query = {};
@@ -132,6 +205,7 @@ async function run() {
             res.status(500).json({ error: 'Internal Server Error' });
         }
     });
+    
     
 
 

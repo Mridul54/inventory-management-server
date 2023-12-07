@@ -9,7 +9,7 @@ const port = process.env.PORT || 5000;
 //middlewares
 app.use(
     cors({
-        origin: ['http://localhost:5173', 'https://colossal-health.surge.sh', 'https://lovely-eyes.surge.sh/'],
+        origin: ['http://localhost:5173', 'https://merciful-amount.surge.sh'],
         credentials: true,
     }),
 )
@@ -76,7 +76,7 @@ async function run() {
         let admin = false;
         if(user){
             admin = user?.role === 'admin';
-            admin = user?.role === 'admin';
+            
         }
         res.send({admin});
     })
@@ -199,27 +199,14 @@ async function run() {
         }
     
         try {
-            const result = await user.find(query).toArray();
+            const result = await shopCollection.find(query).toArray();
             res.json(result);
         } catch (error) {
             console.error('Error retrieving data from MongoDB:', error);
-            res.status(500).json({ error: 'Internal Server Error' });
+            res.status(500).json({ error: 'Internal Server Error'});
         }
     });
-    app.patch("/updateUser", async (req, res) => {
-        const email = req.params.email;
-        const filter = {
-          email 
-        };
-        const updateDoc = {
-          $set: {
-           update: req.body
-          }
-        };
-        const result = await userCollection.updateOne(filter, updateDoc);
-        console.log(result)
-        res.send(result);
-    });
+    
     
 
 
